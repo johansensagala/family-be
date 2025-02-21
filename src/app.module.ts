@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ItemsModule } from './items/items.module';
+import { GamesModule } from './games/games.module';
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { ItemsModule } from './items/items.module';
             synchronize: true, 
         }),
         ItemsModule,
+        GamesModule,
     ],
     controllers: [],
     providers: [],
