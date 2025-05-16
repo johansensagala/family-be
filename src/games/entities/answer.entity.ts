@@ -12,6 +12,9 @@ export class Answer {
   @Column()
   poin: number;
 
+  @Column({ default: false }) // Tambahan field boolean
+  isSurprise: boolean;
+
   @ManyToOne(() => Question, question => question.answers)
   question: Question;
 }
