@@ -23,6 +23,7 @@ export class GamesService {
             .orderBy('round.id', 'ASC')  // Pastikan round tetap diurutkan berdasarkan ID ASC
             .addOrderBy('question.id', 'ASC') // Pastikan pertanyaan juga tetap terurut
             .addOrderBy('answer.point', 'DESC', 'NULLS LAST') // Urutkan answers hanya dalam konteks question
+            .addOrderBy('answer.answer', 'ASC')  // Jika poin sama, urutkan berdasarkan abjad jawaban
             .getMany();
     }
             
@@ -38,6 +39,7 @@ export class GamesService {
             .orderBy('round.id', 'ASC') // Pastikan rounds tetap diurutkan berdasarkan ID ASC
             .addOrderBy('question.id', 'ASC') // Menjaga urutan pertanyaan agar tetap sesuai
             .addOrderBy('answer.poin', 'DESC', 'NULLS LAST') // Urutkan answers dalam konteks pertanyaannya
+            .addOrderBy('answer.answer', 'ASC')  // Jika poin sama, urutkan berdasarkan abjad jawaban
             .getOne();
     
         if (!game) {
