@@ -4,13 +4,19 @@ import { Repository } from 'typeorm';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { Game } from './entities/game.entity';
+import { Question } from './entities/question.entity';
+import { Answer } from './entities/answer.entity';
+import { CreateQuestionDto } from './dto/create-question.dto';
 
 @Injectable()
 export class GamesService {
+
     constructor(
-        @InjectRepository(Game)
-        private readonly gameRepository: Repository<Game>,
+        @InjectRepository(Game)       private readonly gameRepository: Repository<Game>,
+        @InjectRepository(Question)   private readonly questionRepository: Repository<Question>,
+        @InjectRepository(Answer)     private readonly answerRepository: Repository<Answer>,
     ) {}
+
 
     // Fetch all games with related rounds and final rounds
     async findAll(): Promise<Game[]> {
@@ -80,5 +86,28 @@ export class GamesService {
         }
 
         await this.gameRepository.delete(id);
+    }
+
+    async createQuestion(dto: CreateQuestionDto): Promise<Question | null> {
+        // 1. buat entitas Question
+        const question = this.questionRepository.create({ question: dto.question });
+        await this.questionRepository.save(question);
+
+        // 2. masukkan setiap Answer
+        const answerEntities = dto.answers.map(a =>
+            this.answerRepository.create({
+                answer: a.answer,
+                poin: a.poin,
+                isSurprise: a.isSurprise,
+                question,                    // relasi many‑to‑one
+            }),
+        );
+        await this.answerRepository.save(answerEntities);
+
+        // 3. kembalikan pertanyaan berikut relasi answers‑nya
+        return this.questionRepository.findOne({
+            where: { id: question.id },
+            relations: ['answers'],
+        });
     }
 }

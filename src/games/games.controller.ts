@@ -3,6 +3,9 @@ import { GamesService } from './games.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { Game } from './entities/game.entity';
+import { Question } from './entities/question.entity';
+import { CreateQuestionDto } from './dto/create-question.dto';
+import { InternalServerErrorException } from '@nestjs/common';
 
 @Controller('games')
 export class GamesController {
@@ -39,5 +42,16 @@ export class GamesController {
     @Delete(':id')
     async remove(@Param('id') id: number): Promise<void> {
         return this.gamesService.remove(id);
+    }
+
+    @Post('create-questions')
+    async createQuestion(@Body() dto: CreateQuestionDto): Promise<Question> {
+        const result = await this.gamesService.createQuestion(dto);
+
+        if (!result) {
+            throw new InternalServerErrorException('Gagal membuat pertanyaan');
+        }
+
+        return result;
     }
 }
