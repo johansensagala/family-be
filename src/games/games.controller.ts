@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Param, Body, Put, Delete } from '@nestjs/common';
-import { GamesService } from './games.service';
+import { Body, Controller, Delete, Get, InternalServerErrorException, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
+import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 import { Game } from './entities/game.entity';
 import { Question } from './entities/question.entity';
-import { CreateQuestionDto } from './dto/create-question.dto';
-import { InternalServerErrorException } from '@nestjs/common';
+import { GamesService } from './games.service';
 
 @Controller('games')
 export class GamesController {
@@ -17,6 +17,20 @@ export class GamesController {
         return this.gamesService.findAll();
     }
 
+    @Get('questions')
+    async getAllQuestions(): Promise<Question[]> {
+        return this.gamesService.getAllQuestions();
+    }
+
+    @Get('questions/:id')
+    async getQuestionById(@Param('id') id: number): Promise<Question> {
+        const question = await this.gamesService.getQuestionById(id);
+        if (!question) {
+            throw new InternalServerErrorException('Pertanyaan tidak ditemukan');
+        }
+        return question;
+    }
+
     // Get a specific game by ID
     @Get(':id')
     async findOne(@Param('id') id: number): Promise<Game> {
@@ -24,10 +38,10 @@ export class GamesController {
     }
 
     // Create a new game
-    @Post()
-    async create(@Body() createGameDto: CreateGameDto): Promise<Game> {
-        return this.gamesService.create(createGameDto);
-    }
+    // @Post()
+    // async create(@Body() createGameDto: CreateGameDto): Promise<Game> {
+    //     return this.gamesService.create(createGameDto);
+    // }
 
     // Update an existing game by ID
     @Put(':id')
@@ -53,5 +67,18 @@ export class GamesController {
         }
 
         return result;
+    }
+
+    @Put('questions/:id')
+    async updateQuestion(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateQuestionDto: UpdateQuestionDto,
+    ): Promise<Question> {
+        return this.gamesService.updateQuestion(id, updateQuestionDto);
+    }
+
+    @Post()
+    async create(@Body() createGameDto: CreateGameDto): Promise<Game> {
+        return this.gamesService.create(createGameDto);
     }
 }

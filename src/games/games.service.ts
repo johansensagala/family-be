@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Round } from './entities/round.entity';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
+import { CreateQuestionDto } from './dto/create-question.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
+import { Answer } from './entities/answer.entity';
 import { Game } from './entities/game.entity';
 import { Question } from './entities/question.entity';
-import { Answer } from './entities/answer.entity';
-import { CreateQuestionDto } from './dto/create-question.dto';
 
 @Injectable()
 export class GamesService {
@@ -15,6 +17,7 @@ export class GamesService {
         @InjectRepository(Game)       private readonly gameRepository: Repository<Game>,
         @InjectRepository(Question)   private readonly questionRepository: Repository<Question>,
         @InjectRepository(Answer)     private readonly answerRepository: Repository<Answer>,
+        @InjectRepository(Round)      private readonly roundRepository: Repository<Round>,
     ) {}
 
 
@@ -26,9 +29,10 @@ export class GamesService {
             .leftJoinAndSelect('round.question', 'question')
             .leftJoinAndSelect('question.answers', 'answer')
             .leftJoinAndSelect('game.finalRounds', 'finalRound')
-            .orderBy('round.id', 'ASC')  // Pastikan round tetap diurutkan berdasarkan ID ASC
+            .orderBy('game.id', 'ASC')  // Pastikan round tetap diurutkan berdasarkan ID ASC
+            .addOrderBy('round.id', 'ASC') // Pastikan pertanyaan juga tetap terurut
             .addOrderBy('question.id', 'ASC') // Pastikan pertanyaan juga tetap terurut
-            .addOrderBy('answer.point', 'DESC', 'NULLS LAST') // Urutkan answers hanya dalam konteks question
+            .addOrderBy('answer.poin', 'DESC', 'NULLS LAST') // Urutkan answers hanya dalam konteks question
             .addOrderBy('answer.answer', 'ASC')  // Jika poin sama, urutkan berdasarkan abjad jawaban
             .getMany();
     }
@@ -56,13 +60,13 @@ export class GamesService {
     }
         
     // Create a new game
-    async create(createGameDto: CreateGameDto): Promise<Game> {
-        const newGame = this.gameRepository.create({
-            name: createGameDto.name,
-        });
+    // async create(createGameDto: CreateGameDto): Promise<Game> {
+    //     const newGame = this.gameRepository.create({
+    //         name: createGameDto.name,
+    //     });
 
-        return this.gameRepository.save(newGame);
-    }
+    //     return this.gameRepository.save(newGame);
+    // }
 
     // Update an existing game by its ID
     async update(id: number, updateGameDto: UpdateGameDto): Promise<Game> {
@@ -110,4 +114,84 @@ export class GamesService {
             relations: ['answers'],
         });
     }
+
+    // Ambil semua pertanyaan beserta jawabannya
+    async getAllQuestions(): Promise<Question[]> {
+        return this.questionRepository
+            .createQueryBuilder('question')
+            .leftJoinAndSelect('question.answers', 'answer')
+            .orderBy('question.id', 'ASC') // Pastikan pertanyaan juga tetap terurut
+            .addOrderBy('answer.poin', 'DESC', 'NULLS LAST') // Urutkan answers hanya dalam konteks question
+            .addOrderBy('answer.answer', 'ASC')  // Jika poin sama, urutkan berdasarkan abjad jawaban
+            .getMany();
+    }
+
+    async getQuestionById(id: number): Promise<Question> {
+        const question = await this.questionRepository
+            .createQueryBuilder('question')
+            .leftJoinAndSelect('question.answers', 'answer')
+            .where('question.id = :id', { id })
+            .orderBy('answer.poin', 'DESC')
+            .addOrderBy('answer.answer', 'ASC')
+            .getOne();
+
+        if (!question) {
+            throw new NotFoundException(`Pertanyaan dengan ID ${id} tidak ditemukan`);
+        }
+
+        return question;
+    }
+
+    async updateQuestion(id: number, updateQuestionDto: UpdateQuestionDto): Promise<Question> {
+        const question = await this.questionRepository.findOne({
+            where: { id },
+            relations: ['answers'],
+        });
+
+        if (!question) throw new NotFoundException('Question not found');
+
+        console.log(updateQuestionDto);
+        question.question = updateQuestionDto.question;
+
+        // Update existing answers or replace them
+        question.answers = updateQuestionDto.answers.map((answerDto) => {
+            const existing = question.answers.find((a) => a.id === answerDto.id);
+            if (existing) {
+                existing.answer = answerDto.answer;
+                existing.poin = answerDto.poin;
+                existing.isSurprise = answerDto.isSurprise;
+                return existing;
+            } else {
+                return this.answerRepository.create(answerDto); // new answer
+            }
+        });
+
+        return this.questionRepository.save(question);
+    }
+
+    async create(createGameDto: CreateGameDto): Promise<Game> {
+        const game = this.gameRepository.create({ name: createGameDto.name });
+
+        const rounds: Round[] = [];
+
+        for (const roundInput of createGameDto.rounds) {
+            const question = await this.questionRepository.findOne({
+                where: { id: roundInput.questionId },
+            });
+
+            if (!question) throw new NotFoundException(`Question ID ${roundInput.questionId} not found`);
+
+            const round = this.roundRepository.create({
+                type: roundInput.type,
+                question,
+            });
+
+            rounds.push(round);
+        }
+
+        game.rounds = rounds;
+
+        return this.gameRepository.save(game); // cascading akan menyimpan rounds juga
+    }
+
 }

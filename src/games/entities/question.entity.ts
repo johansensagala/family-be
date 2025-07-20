@@ -17,6 +17,6 @@ export class Question {
   @OneToMany(() => FinalRoundQuestion, finalRoundQuestion => finalRoundQuestion.question)
   finalRoundQuestions: FinalRoundQuestion[];
 
-  @OneToMany(() => Answer, answer => answer.question)
+  @OneToMany(() => Answer, answer => answer.question, { cascade: true, eager: true })
   answers: Answer[];
 }

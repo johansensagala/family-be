@@ -10,7 +10,7 @@ export class Game {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @OneToMany(() => Round, round => round.game)
+  @OneToMany(() => Round, (round) => round.game, { cascade: true })
   rounds: Round[];
 
   @OneToMany(() => FinalRound, finalRound => finalRound.game)
