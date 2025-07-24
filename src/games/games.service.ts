@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Round } from './entities/round.entity';
 import { CreateGameDto } from './dto/create-game.dto';
-import { UpdateGameDto } from './dto/update-game.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
+import { UpdateGameDto } from './dto/update-game.dto';
 import { Answer } from './entities/answer.entity';
 import { Game } from './entities/game.entity';
 import { Question } from './entities/question.entity';
+import { Round } from './entities/round.entity';
 
 @Injectable()
 export class GamesService {
@@ -70,15 +70,48 @@ export class GamesService {
 
     // Update an existing game by its ID
     async update(id: number, updateGameDto: UpdateGameDto): Promise<Game> {
-        const existingGame = await this.gameRepository.findOne({ where: { id } });
+        const existingGame = await this.gameRepository.findOne({
+            where: { id },
+            relations: ['rounds'],
+        });
 
         if (!existingGame) {
             throw new NotFoundException(`Game with ID ${id} not found`);
         }
 
-        // Merging update data with the existing game
-        const updatedGame = Object.assign(existingGame, updateGameDto);
-        return this.gameRepository.save(updatedGame);
+        // Update name jika diberikan
+        if (typeof updateGameDto.name === 'string') {
+            existingGame.name = updateGameDto.name;
+        }
+
+        // Jika ada update untuk rounds, kita hapus dulu rounds lama dan tambahkan yang baru
+        if (Array.isArray(updateGameDto.rounds)) {
+            // Hapus semua rounds lama
+            await this.roundRepository.remove(existingGame.rounds);
+
+            const newRounds: Round[] = [];
+
+            for (const roundInput of updateGameDto.rounds) {
+                const question = await this.questionRepository.findOne({
+                    where: { id: roundInput.questionId },
+                });
+
+                if (!question) {
+                    throw new NotFoundException(`Question ID ${roundInput.questionId} not found`);
+                }
+
+                const round = this.roundRepository.create({
+                    type: roundInput.type,
+                    question,
+                });
+
+                newRounds.push(round);
+            }
+
+            existingGame.rounds = newRounds;
+        }
+
+        return this.gameRepository.save(existingGame); // cascading akan menyimpan rounds baru
     }
 
     // Delete a game by its ID

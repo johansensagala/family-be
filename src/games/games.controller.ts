@@ -58,7 +58,7 @@ export class GamesController {
         return this.gamesService.remove(id);
     }
 
-    @Post('create-questions')
+    @Post('questions/add')
     async createQuestion(@Body() dto: CreateQuestionDto): Promise<Question> {
         const result = await this.gamesService.createQuestion(dto);
 
