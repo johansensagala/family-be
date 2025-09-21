@@ -227,4 +227,53 @@ export class GamesService {
         return this.gameRepository.save(game); // cascading akan menyimpan rounds juga
     }
 
+    async generateRandomGame(): Promise<Game> {
+        // 1. Ambil semua pertanyaan
+        const allQuestions = await this.questionRepository.find({ relations: ['answers'] });
+
+        if (!allQuestions.length) throw new NotFoundException('Belum ada pertanyaan yang tersedia');
+
+        const rounds: Round[] = [];
+
+        // 2. Pilih 4 SINGLE rounds dengan 6-9 jawaban
+        const singleQuestions = allQuestions.filter(q => q.answers.length >= 6 && q.answers.length <= 9);
+        if (singleQuestions.length < 4) throw new Error('Tidak cukup pertanyaan SINGLE dengan 6-9 jawaban');
+
+        const selectedSingle = this.getRandomItems(singleQuestions, 4);
+        for (const q of selectedSingle) {
+            const round = this.roundRepository.create({
+                type: 'SINGLE',
+                question: q,
+            });
+            rounds.push(round);
+        }
+
+        // 3. Pilih 2 DOUBLE rounds dengan 4-5 jawaban
+        const doubleQuestions = allQuestions.filter(q => q.answers.length >= 4 && q.answers.length <= 5);
+        if (doubleQuestions.length < 2) throw new Error('Tidak cukup pertanyaan DOUBLE dengan 4-5 jawaban');
+
+        const selectedDouble = this.getRandomItems(doubleQuestions, 2);
+        for (const q of selectedDouble) {
+            const round = this.roundRepository.create({
+                type: 'DOUBLE',
+                question: q,
+            });
+            rounds.push(round);
+        }
+
+        // 4. Buat Game baru
+        const game = this.gameRepository.create({
+            name: `Game Random ${Date.now()}`,
+            rounds,
+        });
+
+        return this.gameRepository.save(game); // cascading akan menyimpan rounds juga
+    }
+
+    // Helper untuk ambil N item random dari array
+    private getRandomItems<T>(array: T[], count: number): T[] {
+        const shuffled = array.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    }
+
 }

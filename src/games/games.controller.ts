@@ -81,4 +81,11 @@ export class GamesController {
     async create(@Body() createGameDto: CreateGameDto): Promise<Game> {
         return this.gamesService.create(createGameDto);
     }
+
+    //  random games
+    @Post('generate-random')
+    async generateRandomGame(): Promise<Game> {
+        return this.gamesService.generateRandomGame();
+    }
+
 }
