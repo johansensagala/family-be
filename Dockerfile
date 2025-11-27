@@ -17,4 +17,4 @@ COPY . .
 CMD ["npm", "run", "start:dev"]
 
 # Container akan expose port 3000 (atau port backend kamu)
-EXPOSE 3000
+EXPOSE 5000

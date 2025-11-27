@@ -148,15 +148,32 @@ export class GamesService {
         });
     }
 
-    // Ambil semua pertanyaan beserta jawabannya
-    async getAllQuestions(): Promise<Question[]> {
-        return this.questionRepository
+    // // Ambil semua pertanyaan beserta jawabannya
+    // async getAllQuestions(): Promise<Question[]> {
+    //     return this.questionRepository
+    //         .createQueryBuilder('question')
+    //         .leftJoinAndSelect('question.answers', 'answer')
+    //         .orderBy('question.id', 'ASC') // Pastikan pertanyaan juga tetap terurut
+    //         .addOrderBy('answer.poin', 'DESC', 'NULLS LAST') // Urutkan answers hanya dalam konteks question
+    //         .addOrderBy('answer.answer', 'ASC')  // Jika poin sama, urutkan berdasarkan abjad jawaban
+    //         .getMany();
+    // }
+
+    async getAllQuestions(search?: string): Promise<Question[]> {
+        const query = this.questionRepository
             .createQueryBuilder('question')
             .leftJoinAndSelect('question.answers', 'answer')
-            .orderBy('question.id', 'ASC') // Pastikan pertanyaan juga tetap terurut
-            .addOrderBy('answer.poin', 'DESC', 'NULLS LAST') // Urutkan answers hanya dalam konteks question
-            .addOrderBy('answer.answer', 'ASC')  // Jika poin sama, urutkan berdasarkan abjad jawaban
-            .getMany();
+            .orderBy('question.id', 'ASC')
+            .addOrderBy('answer.poin', 'DESC', 'NULLS LAST')
+            .addOrderBy('answer.answer', 'ASC');
+
+        if (search && search.trim() !== '') {
+            query.where('LOWER(question.question) LIKE LOWER(:search)', {
+                search: `%${search}%`,
+            });
+        }
+
+        return query.getMany();
     }
 
     async getQuestionById(id: number): Promise<Question> {

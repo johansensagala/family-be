@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, InternalServerErrorException, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, InternalServerErrorException, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
@@ -17,9 +17,16 @@ export class GamesController {
         return this.gamesService.findAll();
     }
 
+    // @Get('questions')
+    // async getAllQuestions(): Promise<Question[]> {
+    //     return this.gamesService.getAllQuestions();
+    // }
+
     @Get('questions')
-    async getAllQuestions(): Promise<Question[]> {
-        return this.gamesService.getAllQuestions();
+    async getAllQuestions(
+        @Query('search') search?: string
+    ): Promise<Question[]> {
+        return this.gamesService.getAllQuestions(search);
     }
 
     @Get('questions/:id')
